@@ -223,6 +223,7 @@ function generateDeviceId() {
 }
 
 // ==================== GỌI SERVER KIỂM TRA KEY ====================
+// ==================== GỌI SERVER KIỂM TRA KEY ====================
 async function activateKey(key) {
   try {
 
@@ -231,7 +232,8 @@ async function activateKey(key) {
       {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "x-app-token": APP_TOKEN
         },
         body: JSON.stringify({
           key: key,
@@ -242,7 +244,39 @@ async function activateKey(key) {
 
     const data = await res.json();
 
-    // server trả về success
+    /*
+      SERVER RESPONSE EXAMPLE
+
+      SUCCESS:
+      {
+        success: true,
+        expireAt: "20/05/2026 12:00",
+        serverTime: "10/05/2026 15:00"
+      }
+
+      KEY INVALID:
+      {
+        success: false,
+        code: "INVALID_KEY",
+        message: "Key không hợp lệ!"
+      }
+
+      KEY EXPIRED:
+      {
+        success: false,
+        code: "KEY_EXPIRED",
+        message: "Key đã hết hạn!"
+      }
+
+      FULL SLOT:
+      {
+        success: false,
+        code: "FULL_SLOT",
+        message: "Key đã full thiết bị!"
+      }
+    */
+
+    // ================= SUCCESS =================
     if (data.success) {
       return {
         success: true,
@@ -253,11 +287,58 @@ async function activateKey(key) {
       };
     }
 
-    return { success: false };
+    // ================= INVALID KEY =================
+    if (data.code === "INVALID_KEY") {
+      return {
+        success: false,
+        data: {
+          type: "invalid",
+          message: "❌ Key không hợp lệ!"
+        }
+      };
+    }
+
+    // ================= KEY EXPIRED =================
+    if (data.code === "KEY_EXPIRED") {
+      return {
+        success: false,
+        data: {
+          type: "expired",
+          message: "⌛ Key đã hết hạn!"
+        }
+      };
+    }
+
+    // ================= FULL SLOT =================
+    if (data.code === "FULL_SLOT") {
+      return {
+        success: false,
+        data: {
+          type: "fullslot",
+          message: "🚫 Key đã full slot thiết bị!"
+        }
+      };
+    }
+
+    // ================= OTHER ERROR =================
+    return {
+      success: false,
+      data: {
+        type: "unknown",
+        message: data.message || "Lỗi không xác định!"
+      }
+    };
 
   } catch (err) {
     console.error("API ERROR:", err);
-    return { success: false };
+
+    return {
+      success: false,
+      data: {
+        type: "network",
+        message: "⚠️ Không kết nối được server!"
+      }
+    };
   }
 }
 
