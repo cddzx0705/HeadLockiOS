@@ -8,47 +8,207 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <!-- SPLASH SCREEN -->
-    <div class="page splash-screen active" id="splashScreen">
-        <div class="logo-container">
-            <div class="logo-placeholder">
-                <img id="splashLogo" src="images/logo.png" alt="">
-            </div>
-            <div class="premium-text">PREMIUM</div>
-        </div>
-        <div class="tap-text">Tap anywhere to continue</div>
-    </div>
+  <script>
+    (function(){
+  const API_BASE = 'https://serverfree-production.up.railway.app';
+  const BRAND_TITLE = 'NG CHI DUC API SERVER KEY';
+  const TZ = 'Asia/Ho_Chi_Minh';
+  const ALWAYS_PROMPT = false;
+  const LS = { DEVICE:'vsh_license_device', KEY:'vsh_license_key' };
 
-    <!-- LOGIN SCREEN -->
-    <div class="page login-screen" id="loginScreen">
-        <div class="login-header">
-            <button class="back-btn" id="loginBackBtn">← Back</button>
-            <h1>HEADLOCK</h1>
-            <div class="login-logo">
-                <div class="login-logo-placeholder">
-                   <img id="loginLogo" src="images/logo.png" alt="">
-                </div>
-            </div>
-            <p class="key-login-text">KEY LOGIN</p>
+  let deviceId = localStorage.getItem(LS.DEVICE);
+  if(!deviceId){
+    deviceId = (crypto.randomUUID?.() || (Date.now().toString(36)+Math.random().toString(36).slice(2,10))).toUpperCase();
+    localStorage.setItem(LS.DEVICE, deviceId);
+  }
+
+  const fmt = (ts)=> ts==null ? 'lifetime' :
+    new Intl.DateTimeFormat('vi-VN',{
+      timeZone:TZ,
+      year:'numeric',month:'2-digit',day:'2-digit',
+      hour:'2-digit',minute:'2-digit',second:'2-digit'
+    }).format(ts);
+
+  // ✅ FIX API
+  async function post(_, data){
+    const r = await fetch(API_BASE + '/checkKey',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(data)
+    });
+
+    const j = await r.json().catch(()=>({success:false,message:'SERVER_ERROR'}));
+
+    if(j.success){
+      return {
+        ok: true,
+        data: {
+          expiresAt: j.expireAt,
+          deviceId: data.deviceId
+        }
+      };
+    }
+
+    return {
+      ok: false,
+      error: j.message || 'Key lỗi'
+    };
+  }
+
+  function ting(){
+    try{
+      const AC = new (window.AudioContext||window.webkitAudioContext)();
+      const o=AC.createOscillator(), g=AC.createGain(), t=AC.currentTime;
+      o.type='sine'; o.frequency.value=1200;
+      g.gain.setValueAtTime(0,t);
+      g.gain.linearRampToValueAtTime(0.18,t+0.02);
+      g.gain.exponentialRampToValueAtTime(0.001,t+0.16);
+      o.connect(g).connect(AC.destination); o.start(t); o.stop(t+0.17);
+    }catch{}
+  }
+
+  const css = `
+  #vgGate{position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;background:rgba(8,10,15,.72);backdrop-filter:blur(6px)}
+  #vgGate .vg-panel{width:min(620px,92vw);border:1px solid #2a2d3f;border-radius:16px;overflow:hidden;color:#e8e7ff;
+    font-family:Inter,system-ui,Arial;background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.018));box-shadow:0 24px 60px rgba(0,0,0,.55)}
+  #vgGate .vg-hd{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid #2a2d3f}
+  #vgGate .vg-brand{font-weight:900;letter-spacing:.3px;white-space:nowrap}
+  #vgGate .vg-hd-rt{display:flex;gap:8px}
+  #vgGate .vg-btn{padding:9px 14px;border-radius:10px;border:1px solid #3a3f56;background:#191f2a;color:#e8e7ff;cursor:pointer}
+  #vgGate .vg-btn:hover{filter:brightness(1.08)}
+  #vgGate .vg-btn--pri{background:#1e293b;border-color:#405075}
+  #vgGate .vg-btn--ghost{background:#141924}
+  #vgGate .vg-bd{padding:16px}
+  #vgGate .vg-label{font-size:12px;color:#aab4d6;margin:0 0 6px 0}
+  #vgGate .vg-field{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center}
+#vgGate .vg-input{padding:11px 12px;border-radius:10px;border:1px solid #3a3f56;background:#0c1017;color:#e8e7ff;width:100%}
+  #vgGate .vg-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  #vgGate .vg-msg{margin-top:12px;padding:12px;border-radius:12px;border:1px solid #2a2d3f;background:#0b1118;font-size:13px;line-height:1.45}
+  #vgGate .vg-msg.ok{border-color:#2f9e44;background:#0d1a12;color:#b9ffd1}
+  #vgGate .vg-msg.warn{border-color:#b8860b;background:#1b1607;color:#ffe9b0}
+  #vgGate .vg-msg.err{border-color:#b02a37;background:#1a0f12;color:#ffd1d6}
+  #vgGate .vg-foot{display:flex;justify-content:space-between;align-items:center;margin-top:10px;color:#9fb0d0;font-size:12px}
+  `;
+
+  const st = document.createElement('style');
+  st.textContent = css;
+  document.head.appendChild(st);
+
+  function $(sel){ return document.querySelector(sel); }
+
+  function build(){
+    let wrap = $('#vgGate');
+    if(wrap) return wrap;
+
+    wrap = document.createElement('div');
+    wrap.id = 'vgGate';
+    wrap.innerHTML = `
+      <div class="vg-panel">
+        <div class="vg-hd">
+          <div class="vg-brand">${BRAND_TITLE}</div>
         </div>
 
-        <div class="login-form">
-            <input type="text" class="key-input" placeholder="Enter your key..." id="keyInput">
-            <button class="login-btn" id="loginBtn">LOGIN</button>
-        </div>
+        <div class="vg-bd">
+          <div class="vg-label">Mã Kích Hoạt</div>
+          <input id="vgKey" class="vg-input" placeholder="Dán key...">
 
-        <div class="contact-section">
-            <h3>CONTACT</h3>
-            <div class="social-buttons">
-                <div class="social-btn zalo"><img src="images/zalo.png" alt=""></div>
-                <div class="social-btn facebook"><img style="width:80px !important;" src="images/fb.webp" alt=""></div>
-            </div>
-            <p class="footer-text">by NgChiDuc</p>
-        </div>
-    </div>
+          <div class="vg-actions">
+  <button class="vg-btn vg-btn--pri" id="vgCheck">Kiểm tra</button>
+  <button class="vg-btn vg-btn--pri" id="vgActive">Kích hoạt</button>
+  <button class="vg-btn vg-btn--ghost" id="vgContact">Liên hệ mua key</button>
+</div>
+   
 
+
+          <div class="vg-msg" id="vgMsg">Sẵn sàng</div>
+
+          <div class="vg-foot">
+            <span id="vgSta">Chưa kích hoạt</span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(wrap);
+
+    $('#vgCheck').onclick = onCheck;
+    $('#vgActive').onclick = onActivate;
+    $('#vgContact').onclick = onContact;
+
+    return wrap;
+  }
+
+  function setMsg(type, html){
+    const box = $('#vgMsg');
+    box.className = 'vg-msg '+(type||'');
+    box.innerHTML = html;
+    ting();
+  }
+  
+function onContact(){
+  window.open('https://zalo.me/0396134792', '_blank');
+}
+  function updateStatus(data){
+    const el = $('#vgSta');
+    if(!data){ el.textContent = 'Chưa kích hoạt'; return; }
+    el.textContent = `Hết hạn: ${fmt(data.expiresAt)}`;
+  }
+
+  async function onCheck(){
+    const key = $('#vgKey').value.trim();
+    if(!key) return setMsg('warn','Vui lòng nhập key');
+
+    setMsg('', 'Đang kiểm tra...');
+    const j = await post('',{ key, deviceId });
+
+    if(j.ok){
+      localStorage.setItem(LS.KEY,key);
+      updateStatus(j.data);
+      setMsg('ok', `Key hợp lệ<br>Hết hạn: <b>${fmt(j.data.expiresAt)}</b>`);
+    }else{
+      setMsg('err', j.error);
+    }
+  }
+
+  async function onActivate(){
+    const key = $('#vgKey').value.trim();
+    if(!key) return setMsg('warn','Vui lòng nhập key');
+
+    setMsg('', 'Đang kích hoạt...');
+const j = await post('',{ key, deviceId });
+
+    if(j.ok){
+      localStorage.setItem(LS.KEY,key);
+      updateStatus(j.data);
+      setMsg('ok', `Kích hoạt thành công<br>Hết hạn: <b>${fmt(j.data.expiresAt)}</b>`);
+      setTimeout(()=>hide(),1000);
+    }else{
+      setMsg('err', j.error);
+    }
+  }
+
+  function show(){ build(); $('#vgGate').style.display='grid'; }
+  function hide(){ $('#vgGate').style.display='none'; }
+
+  async function guardOnLoad(){
+    const savedKey = localStorage.getItem(LS.KEY);
+    if(!savedKey){ show(); return; }
+
+    const v = await post('',{ key:savedKey, deviceId });
+
+    if(!v.ok){ show(); return; }
+
+    updateStatus(v.data);
+  }
+
+  if(document.readyState==='loading')
+    document.addEventListener('DOMContentLoaded', guardOnLoad);
+  else guardOnLoad();
+
+})();
+    </script>
     <!-- MAIN SCREEN -->
-    <div class="page main-screen" id="mainScreen">
+    <div class="page main-screen active" id="mainScreen">
         <div class="header">
             <button class="back-btn" id="mainBackBtn">← Back</button>
             <div class="header-title">
@@ -208,12 +368,12 @@
     <div class="toggle-toast" id="toggleToast"></div>
     <script>
 // ==================== CẤU HÌNH SERVER ====================
-const SERVER_URL = "https://serverfree-production.up.railway.app/";
+const SERVER_URL = "https://testapi-production-11a6.up.railway.app/";
 const APP_TOKEN   = "APP_IF5EJ3IKKVA1JY5AKURW1FTVDX6XIFLT";
 
 // ==================== BIẾN TOÀN CỤC ====================
-let isLoggedIn = false;
-let currentKey = "";
+let isLoggedIn = true;
+let currentKey = "VIP";
 let deviceId = localStorage.getItem("HEADLOCK_DEVICE_ID") || generateDeviceId();
 
 function generateDeviceId() {
@@ -223,7 +383,6 @@ function generateDeviceId() {
 }
 
 // ==================== GỌI SERVER KIỂM TRA KEY ====================
-// ==================== GỌI SERVER KIỂM TRA KEY ====================
 async function activateKey(key) {
   try {
 
@@ -232,8 +391,7 @@ async function activateKey(key) {
       {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "x-app-token": APP_TOKEN
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           key: key,
@@ -244,39 +402,7 @@ async function activateKey(key) {
 
     const data = await res.json();
 
-    /*
-      SERVER RESPONSE EXAMPLE
-
-      SUCCESS:
-      {
-        success: true,
-        expireAt: "20/05/2026 12:00",
-        serverTime: "10/05/2026 15:00"
-      }
-
-      KEY INVALID:
-      {
-        success: false,
-        code: "INVALID_KEY",
-        message: "Key không hợp lệ!"
-      }
-
-      KEY EXPIRED:
-      {
-        success: false,
-        code: "KEY_EXPIRED",
-        message: "Key đã hết hạn!"
-      }
-
-      FULL SLOT:
-      {
-        success: false,
-        code: "FULL_SLOT",
-        message: "Key đã full thiết bị!"
-      }
-    */
-
-    // ================= SUCCESS =================
+    // server trả về success
     if (data.success) {
       return {
         success: true,
@@ -287,58 +413,11 @@ async function activateKey(key) {
       };
     }
 
-    // ================= INVALID KEY =================
-    if (data.code === "INVALID_KEY") {
-      return {
-        success: false,
-        data: {
-          type: "invalid",
-          message: "❌ Key không hợp lệ!"
-        }
-      };
-    }
-
-    // ================= KEY EXPIRED =================
-    if (data.code === "KEY_EXPIRED") {
-      return {
-        success: false,
-        data: {
-          type: "expired",
-          message: "⌛ Key đã hết hạn!"
-        }
-      };
-    }
-
-    // ================= FULL SLOT =================
-    if (data.code === "FULL_SLOT") {
-      return {
-        success: false,
-        data: {
-          type: "fullslot",
-          message: "🚫 Key đã full slot thiết bị!"
-        }
-      };
-    }
-
-    // ================= OTHER ERROR =================
-    return {
-      success: false,
-      data: {
-        type: "unknown",
-        message: data.message || "Lỗi không xác định!"
-      }
-    };
+    return { success: false };
 
   } catch (err) {
     console.error("API ERROR:", err);
-
-    return {
-      success: false,
-      data: {
-        type: "network",
-        message: "⚠️ Không kết nối được server!"
-      }
-    };
+    return { success: false };
   }
 }
 
@@ -396,74 +475,9 @@ function getToggleName(toggleType) {
 // ==================== DOM READY ====================
 document.addEventListener("DOMContentLoaded", async () => {
 
-  // Kiểm tra key đã lưu → tự động login
-  const savedKey = localStorage.getItem("HEADLOCK_KEY");
-  if (savedKey) {
-    const check = await activateKey(savedKey);
-    if (check.success) {
-      isLoggedIn = true;
-      currentKey = savedKey;
-      showPage("mainScreen");
-      showToggleToast(`Chào mừng quay lại!`);
-    } else {
-      localStorage.removeItem("HEADLOCK_KEY");
-      showPage("splashScreen");
-    }
-  } else {
-    showPage("splashScreen");
-  }
-
-  // ==================== SPLASH → LOGIN ====================
-  document.getElementById("splashScreen").addEventListener("click", () => {
-    showPage("loginScreen");
-    initLoginEffects();
-  });
 
   // ==================== LOGIN KEY ====================
-  const keyInput = document.getElementById("keyInput");
-  const loginBtn = document.getElementById("loginBtn");
-
-  const handleLogin = async () => {
-    const key = keyInput.value.trim();
-    if (!key) {
-      showToggleToast("Nhập key đi bro!");
-      return;
-    }
-
-    loginBtn.disabled = true;
-    loginBtn.textContent = "Đang kiểm tra key...";
-
-    const result = await activateKey(key);
-
-    if (result.success) {
-      isLoggedIn = true;
-      currentKey = key;
-      localStorage.setItem("HEADLOCK_KEY", key);
-      keyInput.value = "";
-      showPage("mainScreen");
-      const daysLeft = getDaysLeft(result.data.expiresAt);
-      showToggleToast(`Đăng nhập thành công!`);
-    } else {
-      showToggleToast(result.data.message || "Key sai hoặc hết hạn!");
-    }
-
-    loginBtn.disabled = false;
-    loginBtn.textContent = "LOGIN";
-  };
-
-  loginBtn.addEventListener("click", handleLogin);
-  keyInput.addEventListener("keypress", e => e.key === "Enter" && handleLogin());
-
-  // ==================== BACK BUTTON ====================
-  document.querySelectorAll(".back-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      if (confirm("Thoát sẽ phải nhập lại key nha!")) {
-        localStorage.removeItem("HEADLOCK_KEY");
-        isLoggedIn = false;
-        showPage("splashScreen");
-      }
-    });
-  });
+ 
 
     // ==================== TOGGLE BOST RAM RIÊNG (hiện popup tối ưu máy) ====================
   // Gắn event listener với capture phase để chạy trước
@@ -479,7 +493,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
 
-      const check = await activateKey(currentKey);
+      const check = { success: true };
       if (!check.success) {
         showToggleToast("Key hết hạn!");
         localStorage.removeItem("HEADLOCK_KEY");
@@ -543,7 +557,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     toggle.addEventListener("click", async () => {
       if (!isLoggedIn) return showToggleToast("Chưa nhập key!");
 
-      const check = await activateKey(currentKey);
+      const check = { success: true };
       if (!check.success) {
         showToggleToast("Key hết hạn!");
         localStorage.removeItem("HEADLOCK_KEY");
@@ -562,7 +576,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.querySelector('.toggle-switch[data-toggle="headlock"]')?.addEventListener("click", async () => {
     if (!isLoggedIn) return showToggleToast("Chưa nhập key!");
 
-    const check = await activateKey(currentKey);
+    const check = { success: true };
     if (!check.success) {
       showToggleToast("Key hết hạn!");
       localStorage.removeItem("HEADLOCK_KEY");
@@ -580,7 +594,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("onBtn")?.addEventListener("click", async () => {
     if (!isLoggedIn) return showToggleToast("Chưa nhập key!");
 
-    const check = await activateKey(currentKey);
+    const check = { success: true };
     if (!check.success) {
       showToggleToast("Key hết hạn!");
       localStorage.removeItem("HEADLOCK_KEY");
